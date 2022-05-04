@@ -153,10 +153,12 @@ pub enum BrokerError {
     #[error("Protocol error \"{0}\"")]
     ProtocolError(#[from] ProtocolError),
 
+    #[cfg(feature = "amqp-broker")]
     /// Any other AMQP error that could happen.
     #[error("AMQP error \"{0}\"")]
     AMQPError(#[from] lapin::Error),
 
+    #[cfg(feature = "redis-broker")]
     /// Any other Redis error that could happen.
     #[error("Redis error \"{0}\"")]
     RedisError(#[from] redis::RedisError),
@@ -166,12 +168,14 @@ impl BrokerError {
     pub fn is_connection_error(&self) -> bool {
         match self {
             BrokerError::IoError(_) | BrokerError::NotConnected => true,
+            #[cfg(feature = "amqp-broker")]
             BrokerError::AMQPError(err) => matches!(
                 err,
                 lapin::Error::ProtocolError(_)
                     | lapin::Error::InvalidConnectionState(_)
                     | lapin::Error::InvalidChannelState(_)
             ),
+            #[cfg(feature = "redis-broker")]
             BrokerError::RedisError(err) => {
                 err.is_connection_dropped() || err.is_connection_refusal()
             }
